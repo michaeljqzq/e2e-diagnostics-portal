@@ -160,6 +160,11 @@ var queue = __webpack_require__(3);
 var requestNum = 0;
 var cacheMissNum = 0;
 
+var twinKey = "__e2e_diag_sample_rate";
+var cacheSpanInSeconds = 10;
+
+var Registry = void 0;
+
 router.get('/', queue({ activeLimit: 1, queuedLimit: -1 }), function (req, res) {
   requestNum++;
   var cachedDevice = cache.get('device');
@@ -190,26 +195,82 @@ router.get('/', queue({ activeLimit: 1, queuedLimit: -1 }), function (req, res) 
   if (m) {
     iothubName = m[1];
   }
-  var Registry = __webpack_require__(11).Registry.fromConnectionString(connectionString);
+  if (!Registry) {
+    Registry = __webpack_require__(11).Registry.fromConnectionString(connectionString);
+  }
+
   Registry.list(function (err, deviceList) {
     if (err) {
       res.status(500).send('Could not trigger job: ' + err.message);
       return;
     } else {
-      var connectedNum = 0;
+      var deviceArray = [];
+      var promises = [];
       deviceList.forEach(function (device) {
-        if (device.connectionState === "Connected") connectedNum++;
+        var d = {
+          deviceId: device.deviceId,
+          connected: device.connectionState === "Connected"
+        };
+        deviceArray.push(d);
+        promises.push(getTwin(device.deviceId));
       });
-      var result = {
-        registered: deviceList.length,
-        connected: connectedNum,
-        iothub: iothubName
-      };
-      cache.put('device', result, 5000);
-      res.send(result);
+      Promise.all(promises).then(function (results) {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          var _loop = function _loop() {
+            var twin = _step.value;
+
+            var device = deviceArray.find(function (d) {
+              return d.deviceId === twin.deviceId;
+            });
+            device.diagnosticDesired = twin.properties.desired[twinKey];
+            device.diagnosticReported = twin.properties.reported[twinKey];
+          };
+
+          for (var _iterator = results[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            _loop();
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator.return) {
+              _iterator.return();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
+
+        var result = {
+          iothub: iothubName,
+          devices: deviceArray
+        };
+        cache.put('device', result, cacheSpanInSeconds * 1000);
+        res.send(result);
+      });
     }
   });
 });
+
+function getTwin(deviceId) {
+  return new Promise(function (resolve, reject) {
+    Registry.getTwin(deviceId, function (err, twin) {
+      if (err) {
+        console.log(err);
+        resolve();
+      } else {
+        resolve(twin);
+      }
+    });
+  });
+}
 
 router.get('/debug', function (req, res) {
   res.json({
