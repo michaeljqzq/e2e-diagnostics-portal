@@ -117,7 +117,7 @@ var cors = __webpack_require__(8);
 var cfg = __webpack_require__(1);
 
 var device = __webpack_require__(9);
-var metric = __webpack_require__(12);
+var metric = __webpack_require__(11);
 
 var app = express();
 app.use(bodyParser.json());
@@ -153,7 +153,6 @@ module.exports = require("cors");
 
 var express = __webpack_require__(0);
 var router = express.Router();
-var uuid = __webpack_require__(10);
 var cache = __webpack_require__(2);
 var queue = __webpack_require__(3);
 
@@ -196,7 +195,7 @@ router.get('/', queue({ activeLimit: 1, queuedLimit: -1 }), function (req, res) 
     iothubName = m[1];
   }
   if (!Registry) {
-    Registry = __webpack_require__(11).Registry.fromConnectionString(connectionString);
+    Registry = __webpack_require__(10).Registry.fromConnectionString(connectionString);
   }
 
   Registry.list(function (err, deviceList) {
@@ -285,16 +284,10 @@ module.exports = router;
 /* 10 */
 /***/ (function(module, exports) {
 
-module.exports = require("uuid");
-
-/***/ }),
-/* 11 */
-/***/ (function(module, exports) {
-
 module.exports = require("azure-iothub");
 
 /***/ }),
-/* 12 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -302,13 +295,13 @@ module.exports = require("azure-iothub");
 
 var express = __webpack_require__(0);
 var router = express.Router();
-var request = __webpack_require__(13);
-var node_util = __webpack_require__(14);
+var request = __webpack_require__(12);
+var node_util = __webpack_require__(13);
 var config = __webpack_require__(1);
 // var Util = require('../util/util');
 var queue = __webpack_require__(3);
 var cache = __webpack_require__(2);
-var storage = __webpack_require__(15);
+var storage = __webpack_require__(14);
 
 var startOfTimestamp = new Date(config.startTime);
 var kustoQuery = 'customEvents | where name == \'E2EDiagnostics\' and timestamp >= ago(1d) and todatetime(tostring(customDimensions[\'time\'])) >= datetime(\'%s\') and todatetime(tostring(customDimensions[\'time\'])) <= datetime(\'%s\') | project customDimensions';
@@ -584,19 +577,19 @@ router.get('/debug/reset', function (req, res) {
 module.exports = router;
 
 /***/ }),
-/* 13 */
+/* 12 */
 /***/ (function(module, exports) {
 
 module.exports = require("request");
 
 /***/ }),
-/* 14 */
+/* 13 */
 /***/ (function(module, exports) {
 
 module.exports = require("util");
 
 /***/ }),
-/* 15 */
+/* 14 */
 /***/ (function(module, exports) {
 
 module.exports = require("azure-storage");
